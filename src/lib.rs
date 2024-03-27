@@ -37,6 +37,7 @@ pub mod cap {
     pub struct PmCap {
         pub pm_cap_on:           u8,
         pub pm_cap_next_ptr:     u8,
+        pub pm_base_ptr:         u8,
         pub pm_cap_id:           u8,
         pub pm_cap_version:      u8,
         pub pm_cap_pme_clock:    u8,
@@ -60,13 +61,14 @@ pub mod cap {
 
     impl PmCap
     {
-        pub fn new(data: u64) -> Self {
+        pub fn new(data: u64, pm_base_ptr : u8) -> Self {
             Self {
                 //
                 // pm
                 //
                 pm_cap_on: (data & 0xFFFFFFFF != 0) as u8,
                 pm_cap_next_ptr: get_bits((data & 0xFFFFFFFF) as u32, 15, 8) as u8,
+                pm_base_ptr,
                 pm_cap_id: get_bits((data & 0xFFFFFFFF) as u32, 7, 0) as u8,
                 pm_cap_version: get_bits((data & 0xFFFFFFFF) as u32, 18, 16) as u8,
                 pm_cap_pme_clock: get_bit((data & 0xFFFFFFFF) as u32, 19) as u8,
@@ -96,6 +98,7 @@ pub mod cap {
     pub struct MsiCap  {
         pub msi_cap_on : u8,
         pub msi_cap_nextptr : u8,
+        pub msi_base_ptr : u8,
         pub msi_cap_multimsgcap : u8,
         pub msi_cap_multimsg_extension : u8,
         pub msi_cap_64_bit_addr_capable : u8,
@@ -103,10 +106,11 @@ pub mod cap {
     }
     impl MsiCap
     {
-        pub fn new(data: u32) -> Self {
+        pub fn new(data: u32, msi_base_ptr: u8) -> Self {
             Self {
                 msi_cap_on: (data != 0) as u8,
                 msi_cap_nextptr: get_bits(data, 15, 8) as u8,
+                msi_base_ptr,
                 msi_cap_multimsgcap: get_bits(data, 19, 17) as u8,
                 msi_cap_multimsg_extension: get_bits(data, 22, 20) as u8,
                 msi_cap_64_bit_addr_capable: get_bit(data, 23) as u8,
@@ -120,6 +124,7 @@ pub mod cap {
         pub pcie_cap_on : u8,
         pub pcie_cap_capability_id : u8,
         pub pcie_cap_nextptr : u8,
+        pub pcie_base_ptr : u8,
         pub pcie_cap_capability_version : u8,
         pub pcie_cap_device_port_type : u8,
         pub pcie_cap_slot_implemented : u8,
@@ -179,11 +184,12 @@ pub mod cap {
     }
     impl PciCap
     {
-        pub fn new(pci: u32, dev: u64, dev2: u64, link: u64, link2: u64) -> Self {
+        pub fn new(pci: u32, dev: u64, dev2: u64, link: u64, link2: u64, pcie_base_ptr : u8) -> Self {
             Self {
                 pcie_cap_on: (pci != 0) as u8,
                 pcie_cap_capability_id: get_bits(pci, 7, 0) as u8,
                 pcie_cap_nextptr: get_bits(pci, 15, 8) as u8,
+                pcie_base_ptr,
                 pcie_cap_capability_version: get_bits(pci, 19, 16) as u8,
                 pcie_cap_device_port_type: get_bits(pci, 23, 20) as u8,
                 pcie_cap_slot_implemented: get_bit(pci, 24) as u8,
@@ -248,16 +254,18 @@ pub mod cap {
     pub struct DsnCap {
         pub dsn_cap_on : u8,
         pub dsn_cap_next_ptr : u16,
+        pub dsn_base_ptr : u16,
         pub dsn_cap_id : u8,
         pub dsn_serial : u64
     }
 
     impl DsnCap {
-        pub fn new(cap : u32, sn: u64) -> Self
+        pub fn new(cap : u32, sn: u64, dsn_base_ptr : u16) -> Self
         {
             Self {
                 dsn_cap_on: (cap != 0) as u8,
                 dsn_cap_next_ptr: get_bits(cap, 31, 20) as u16,
+                dsn_base_ptr,
                 dsn_cap_id:  get_bits(cap, 7, 0) as u8,
                 dsn_serial: sn
             }
@@ -415,17 +423,17 @@ impl Pci {
     pub fn get_pm(&self) -> cap::PmCap {
         let cap = self.get_capability_by_id(0x01);
         if cap != 0 {
-            return cap::PmCap::new(self.read(cap as isize));
+            return cap::PmCap::new(self.read(cap as isize), cap);
         }
-        return cap::PmCap::new(0);
+        return cap::PmCap::new(0, 0);
     }
 
     pub fn get_msi(&self) -> cap::MsiCap {
         let cap = self.get_capability_by_id(0x05);
         if cap != 0 {
-            return cap::MsiCap::new(self.read(cap as isize));
+            return cap::MsiCap::new(self.read(cap as isize), cap);
         }
-        return cap::MsiCap::new(0);
+        return cap::MsiCap::new(0, 0);
     }
 
     pub fn get_pci(&self) -> cap::PciCap {
@@ -438,10 +446,11 @@ impl Pci {
                 self.read::<u64>(cap + 0x04 + 0x20), // dev2
 
                 self.read::<u64>(cap + 0x0C), // link
-                self.read::<u64>(cap + 0x0C + 0x20) // link2
+                self.read::<u64>(cap + 0x0C + 0x20), // link2
+                cap as u8
             );
         }
-        return cap::PciCap::new(0, 0, 0, 0, 0);
+        return cap::PciCap::new(0, 0, 0, 0, 0, 0);
     }
 
     pub fn get_dsn(&self) -> cap::DsnCap {
@@ -450,9 +459,10 @@ impl Pci {
             return cap::DsnCap::new(
                 self.read::<u32>(cap),
                 self.read::<u64>(cap + 0x04),
+                cap as u16
             );
         }
-        return cap::DsnCap::new(0, 0);
+        return cap::DsnCap::new(0, 0, 0);
     }
 
     pub fn get_empty_extended_cap(&self, id: u16) -> cap::EmptyExtCap {
