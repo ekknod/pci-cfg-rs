@@ -1,4 +1,4 @@
-mod config {
+pub mod config {
 
 #[derive(Debug)]
 pub struct Pci
@@ -30,8 +30,8 @@ pub fn get_bits(value: u32, end_bit: usize, start_bit: usize) -> u32 {
 }
 
 pub mod cap {
-    use crate::get_bit;
-    use crate::get_bits;
+    use crate::config::get_bit;
+    use crate::config::get_bits;
 
     #[derive(Debug)]
     pub struct PmCap {
