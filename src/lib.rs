@@ -263,6 +263,24 @@ pub mod cap {
             }
         }
     }
+
+    #[derive(Debug)]
+    pub struct EmptyExtCap {
+        pub cap_on : u8,
+        pub cap_next_ptr : u16,
+        pub cap_id : u8,
+    }
+
+    impl EmptyExtCap {
+        pub fn new(cap : u32) -> Self
+        {
+            Self {
+                cap_on: (cap != 0) as u8,
+                cap_next_ptr: get_bits(cap, 31, 20) as u16,
+                cap_id:  get_bits(cap, 7, 0) as u8
+            }
+        }
+    }
 }
 
 impl Pci {
@@ -433,6 +451,16 @@ impl Pci {
             );
         }
         return cap::DsnCap::new(0, 0);
+    }
+
+    pub fn get_empty_extended_cap(&self, id: u16) -> cap::EmptyExtCap {
+        let cap = self.get_ext_capability_by_id(id) as isize;
+        if cap != 0 {
+            return cap::EmptyExtCap::new(
+                self.read::<u32>(cap)
+            );
+        }
+        return cap::EmptyExtCap::new(0);
     }
 }
 
