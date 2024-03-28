@@ -213,32 +213,7 @@ impl Pci {
                 }
             };
         }
-        return cap::PCIE{
-            cap_on: false,
-            base_ptr: 0,
-            hdr: fld::CapHdr(0),
-            cap: fld::PciCap(0),
-            dev: cap::DEV {
-                cap: fld::DevCap(0),
-                control: fld::DevControl(0),
-                status: fld::DevStatus(0),
-            },
-            dev2: cap::DEV2 {
-                cap: fld::DevCap2(0),
-                control: fld::DevControl2(0),
-                status: fld::DevStatus2(0),
-            },
-            link: cap::LINK {
-                cap: fld::LinkCap(0),
-                control: fld::LinkControl(0),
-                status: fld::LinkStatus(0),
-            },
-            link2: cap::LINK2 {
-                cap: fld::LinkCap2(0),
-                control: fld::LinkControl2(0),
-                status: fld::LinkStatus2(0),
-            }
-        };
+        return cap::PCIE::new();
     }
 
     pub fn get_dsn(&self) -> cap::DSN {
@@ -251,7 +226,7 @@ impl Pci {
                 serial: self.read::<u64>(cap as isize + 4)
             };
         }
-        return cap::DSN { cap_on: false, base_ptr: 0, hdr: fld::CapExtHdr(0), serial: 0 };
+        return cap::DSN::new();
     }
 
     pub fn get_empty_extended_cap(&self, id: u8) -> cap::EmptyExtPcieCap {
@@ -583,6 +558,7 @@ mod cap
         pub hdr : fld::CapExtHdr,
         pub serial : u64
     }
+    impl DSN {pub fn new() -> Self { Self { cap_on: false, base_ptr: 0, hdr: fld::CapExtHdr(0), serial: 0 } }}
 
     #[derive(Debug)]
     pub struct EmptyExtPcieCap {
