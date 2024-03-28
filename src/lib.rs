@@ -282,6 +282,7 @@ pub mod fld {
         impl Debug;
         u8;
         pub cap_id, _: 7, 0;
+        u16;
         pub cap_next_ptr, _: 31, 20;
     }
 
