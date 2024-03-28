@@ -159,7 +159,7 @@ impl Pci {
                 csr: fld::PmCsr(((val >> 32) & 0xFFFF) as u16),
             };
         }
-        return cap::PM{cap_on: false,base_ptr: 0, hdr: fld::CapHdr(0), cap: fld::PmCap(0), csr: fld::PmCsr(0)};
+        return cap::PM::new();
     }
 
     pub fn get_msi(&self) -> cap::MSI {
@@ -173,7 +173,7 @@ impl Pci {
                 cap: fld::MsiCap(((val >> 16) & 0xFFFF) as u16)
             };
         }
-        return cap::MSI{ cap_on: false, base_ptr: 0, hdr: fld::CapHdr(0), cap: fld::MsiCap(0) };
+        return cap::MSI::new();
     }
 
     pub fn get_pci(&self) -> cap::PCIE {
@@ -263,7 +263,7 @@ impl Pci {
                 hdr: fld::CapExtHdr(self.read::<u32>(cap as isize))
             };
         }
-        return cap::EmptyExtPcieCap{ cap_on: false, base_ptr: 0, hdr: fld::CapExtHdr(0) };
+        return cap::EmptyExtPcieCap::new();
     }
 }
 
@@ -520,6 +520,8 @@ mod cap
         pub cap : fld::PmCap,
         pub csr : fld::PmCsr
     }
+    impl PM { pub fn new() -> Self { Self {cap_on: false, base_ptr: 0, hdr: fld::CapHdr(0), cap: fld::PmCap(0), csr: fld::PmCsr(0)} } }
+
     #[derive(Debug)]
     pub struct MSI {
         pub cap_on: bool,
@@ -527,12 +529,14 @@ mod cap
         pub hdr : fld::CapHdr,
         pub cap : fld::MsiCap
     }
+    impl MSI { pub fn new() -> Self { Self{ cap_on: false, base_ptr: 0, hdr: fld::CapHdr(0), cap: fld::MsiCap(0) } } }
     #[derive(Debug)]
     pub struct DEV {
         pub cap : fld::DevCap,
         pub control : fld::DevControl,
         pub status : fld::DevStatus,
     }
+    impl DEV { pub fn new() -> Self { Self { cap: fld::DevCap(0), control: fld::DevControl(0), status: fld::DevStatus(0) } } }
 
     #[derive(Debug)]
     pub struct DEV2 {
@@ -540,6 +544,7 @@ mod cap
         pub control : fld::DevControl2,
         pub status : fld::DevStatus2,
     }
+    impl DEV2 { pub fn new() -> Self { Self { cap: fld::DevCap2(0), control: fld::DevControl2(0), status: fld::DevStatus2(0) } } }
 
     #[derive(Debug)]
     pub struct LINK {
@@ -547,6 +552,7 @@ mod cap
         pub control : fld::LinkControl,
         pub status : fld::LinkStatus,
     }
+    impl LINK { pub fn new() -> Self { Self { cap: fld::LinkCap(0), control: fld::LinkControl(0), status: fld::LinkStatus(0) } } }
 
     #[derive(Debug)]
     pub struct LINK2 {
@@ -554,6 +560,7 @@ mod cap
         pub control : fld::LinkControl2,
         pub status : fld::LinkStatus2,
     }
+    impl LINK2 { pub fn new() -> Self { Self { cap: fld::LinkCap2(0), control: fld::LinkControl2(0), status: fld::LinkStatus2(0) } } }
 
     #[derive(Debug)]
     pub struct PCIE {
@@ -566,7 +573,8 @@ mod cap
         pub link : LINK,
         pub link2 : LINK2,
     }
-
+    impl PCIE { pub fn new() -> Self { Self { cap_on: false, base_ptr: 0, hdr: fld::CapHdr(0), cap: fld::PciCap(0),
+        dev: DEV::new(), dev2: DEV2::new(), link: LINK::new(), link2: LINK2::new() } } }
 
     #[derive(Debug)]
     pub struct DSN {
@@ -582,6 +590,7 @@ mod cap
         pub base_ptr : u16,
         pub hdr : fld::CapExtHdr,
     }
+    impl EmptyExtPcieCap {pub fn new() -> Self { Self {cap_on:false, base_ptr:0, hdr: fld::CapExtHdr(0)}}}
 }
 
 }
