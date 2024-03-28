@@ -47,7 +47,7 @@ fn main() {
             continue;
         }
         let cap = conf.get_empty_extended_cap(i);
-        if cap.cap_on != 0 {
+        if cap.cap_on {
             println!("{:#?}", cap);
         }
     }
