@@ -1,5 +1,5 @@
 pub mod config {
-#[derive(Debug)]
+
 pub struct Pci
 {
     cfg: [u8; 0x1000],
@@ -17,6 +17,27 @@ pub struct Pci
     pub secondary_bus: u8,
     pub subordinate_bus: u8,
     pub class_code: u32,
+}
+
+impl std::fmt::Debug for Pci {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Pci")
+         .field("vendor_id", &self.vendor_id)
+         .field("device_id", &self.device_id)
+         .field("subsystem_vendor_id", &self.subsystem_vendor_id)
+         .field("subsystem_device_id", &self.subsystem_device_id)
+         .field("command", &self.command)
+         .field("status", &self.status)
+         .field("header_type", &self.header_type)
+         .field("interrupt_line", &self.interrupt_line)
+         .field("interrupt_pin", &self.interrupt_pin)
+         .field("capabilities_ptr", &self.capabilities_ptr)
+         .field("bus_number", &self.bus_number)
+         .field("secondary_bus", &self.secondary_bus)
+         .field("subordinate_bus", &self.subordinate_bus)
+         .field("class_code", &self.class_code)
+         .finish()
+    }
 }
 
 impl Pci {
