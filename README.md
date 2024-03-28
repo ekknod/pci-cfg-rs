@@ -32,7 +32,7 @@ const XILINX_ADAPTER_CFG: [u8; 400] = [
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 ];
 fn main() {
-    let conf = config::Pci::new(&XILINX_ADAPTER_CFG, std::mem::size_of_val(&XILINX_ADAPTER_CFG));
+    let conf = config::Pci::new(&XILINX_ADAPTER_CFG);
     println!("{:#?}", conf);
     println!("{:#?}", conf.get_pm());
     println!("{:#?}", conf.get_msi());
