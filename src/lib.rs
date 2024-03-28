@@ -1,9 +1,8 @@
 pub mod config {
-
 #[derive(Debug)]
-pub struct Pci
+pub struct Pci <'a>
 {
-    cfg: [u8; 0x1000],
+    cfg: &'a [u8],
     pub vendor_id: u16,
     pub device_id: u16,
     pub subsystem_vendor_id: u16,
@@ -20,7 +19,7 @@ pub struct Pci
     pub class_code: u32,
 }
 
-impl Pci {
+impl<'a> Pci<'a> {
     pub const MAX_CAPABILITIES: u8 = 0x16;
     pub const MAX_EXTENDED_CAPABILITIES: u8 = 0x2F;
 
@@ -35,11 +34,8 @@ impl Pci {
         return Pci::read_field(&self.cfg, offset)
     }
 
-    pub fn new(cfg: &[u8], size: usize) -> Self
+    pub fn new(cfg: &'a [u8]) -> Self
     {
-        let mut cfg_buffer: [u8; 0x1000] = [0; 0x1000];
-        cfg_buffer[..size].copy_from_slice(&cfg[..size]);
-
         let vendor_id = Pci::read_field::<u16>(cfg, 0x00);
         let device_id = Pci::read_field::<u16>(cfg, 0x02);
         
@@ -54,7 +50,6 @@ impl Pci {
         let interrupt_line = Pci::read_field::<u8>(cfg, 0x3C);
         let interrupt_pin = Pci::read_field::<u8>(cfg, 0x3D);
         
-
         let capabilities_ptr =
             if !status.capabilities_list() {
                 0 as u8
@@ -84,7 +79,7 @@ impl Pci {
             };
 
         Self{
-            cfg: cfg_buffer,
+            cfg,
             vendor_id,
             device_id,
             subsystem_vendor_id,
