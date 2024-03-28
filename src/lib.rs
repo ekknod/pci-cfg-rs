@@ -61,64 +61,45 @@ impl Pci {
         let size = std::mem::size_of_val(cfg);
         cfg_buffer[..size].copy_from_slice(&cfg[..size]);
 
-        let vendor_id = Pci::read_field::<u16>(cfg, 0x00);
-        let device_id = Pci::read_field::<u16>(cfg, 0x02);
-        
-        let subsystem_vendor_id = Pci::read_field::<u16>(cfg, 0x2C);
-        let subsystem_device_id = Pci::read_field::<u16>(cfg, 0x2E);
-
-        let command = fld::Command(Pci::read_field::<u16>(cfg, 0x04));
-        let status =  fld::Status(Pci::read_field::<u16>(cfg, 0x06));
-
         let header_type = fld::HeaderType(Pci::read_field::<u8>(cfg, 0x0E));
-
-        let interrupt_line = Pci::read_field::<u8>(cfg, 0x3C);
-        let interrupt_pin = Pci::read_field::<u8>(cfg, 0x3D);
-        
-        let capabilities_ptr =
-            if !status.capabilities_list() {
-                0 as u8
-            } else {
-                Pci::read_field::<u8>(cfg, 0x34)
-            };
-
         let bus_number : u8;
         let secondary_bus : u8;
         let subordinate_bus : u8;
+
         if header_type.header_type() == 1 {
-            bus_number      = Pci::read_field(cfg, 0x18);
-            secondary_bus   = Pci::read_field(cfg, 0x19);
+            bus_number = Pci::read_field(cfg, 0x18);
+            secondary_bus = Pci::read_field(cfg, 0x19);
             subordinate_bus = Pci::read_field(cfg, 0x1A);
         } else {
             bus_number = 0;
             secondary_bus = 0;
             subordinate_bus = 0;
         }
-        
-        let class_code =
-            {
-                let a0 = Pci::read_field::<u8>(cfg, 0x09 + 0) as u32;
-                let a1 = Pci::read_field::<u8>(cfg, 0x09 + 1) as u32;
-                let a2 = Pci::read_field::<u8>(cfg, 0x09 + 2) as u32;
-                (a2 << 16) | (a1 << 8) | a0
-            };
+
+        let status = fld::Status(Pci::read_field::<u16>(cfg, 0x06));
+        let capabilities_ptr = if status.capabilities_list() { Pci::read_field::<u8>(cfg, 0x34) } else { 0 };
 
         Self{
             cfg : cfg_buffer,
-            vendor_id,
-            device_id,
-            subsystem_vendor_id,
-            subsystem_device_id,
-            command,
+            vendor_id: Pci::read_field::<u16>(cfg, 0x00),
+            device_id: Pci::read_field::<u16>(cfg, 0x02),
+            subsystem_vendor_id: Pci::read_field::<u16>(cfg, 0x2C),
+            subsystem_device_id: Pci::read_field::<u16>(cfg, 0x2E),
+            command: fld::Command(Pci::read_field::<u16>(cfg, 0x04)),
             status,
             header_type,
-            interrupt_line,
-            interrupt_pin,
+            interrupt_line: Pci::read_field::<u8>(cfg, 0x3C),
+            interrupt_pin: Pci::read_field::<u8>(cfg, 0x3D),
             capabilities_ptr,
             bus_number,
             secondary_bus,
             subordinate_bus,
-            class_code
+            class_code: {
+                let a0 = Pci::read_field::<u8>(cfg, 0x09 + 0) as u32;
+                let a1 = Pci::read_field::<u8>(cfg, 0x09 + 1) as u32;
+                let a2 = Pci::read_field::<u8>(cfg, 0x09 + 2) as u32;
+                (a2 << 16) | (a1 << 8) | a0
+            }
         }
     }
 
@@ -128,7 +109,6 @@ impl Pci {
         if off == 0 {
             return 0;
         }
-        
         loop {
             let cap = fld::CapHdr(self.read::<u16>(off as isize));
             if cap.cap_id() == id
@@ -149,7 +129,6 @@ impl Pci {
     pub fn get_ext_capability_by_id(&self, id: u8) -> u16
     {
         let mut off = 0x100 as u16;
-        
         loop {
             let cap = fld::CapExtHdr(self.read::<u32>(off as isize));
             if cap.cap_id() == id
@@ -166,7 +145,7 @@ impl Pci {
         }
         return 0;
     }
-    
+
     pub fn get_pm(&self) -> cap::PM {
         let cap = self.get_capability_by_id(0x01);
         if cap != 0 {
@@ -200,10 +179,8 @@ impl Pci {
         let cap = self.get_capability_by_id(0x10);
         if cap != 0 {
             let pci = self.read::<u32>(cap as isize);
-
             let dev = self.read::<u64>(cap as isize + 0x04);
             let dev2 = self.read::<u64>(cap as isize + 0x04 + 0x20);
-
             let link = self.read::<u64>(cap as isize + 0x0C);
             let link2 = self.read::<u64>(cap as isize + 0x0C + 0x20);
             return cap::PCIE{
