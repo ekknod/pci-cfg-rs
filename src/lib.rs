@@ -219,10 +219,11 @@ impl Pci {
     pub fn get_dsn(&self) -> cap::DSN {
         let cap = self.get_ext_capability_by_id(0x03);
         if cap != 0 {
+            let hdr = self.read::<u32>(cap as isize);
             return cap::DSN {
-                cap_on: cap != 0,
+                cap_on: hdr != 0,
                 base_ptr: cap,
-                hdr: fld::CapExtHdr(self.read::<u32>(cap as isize)),
+                hdr: fld::CapExtHdr(hdr),
                 serial: self.read::<u64>(cap as isize + 4)
             };
         }
@@ -232,10 +233,11 @@ impl Pci {
     pub fn get_empty_extended_cap(&self, id: u8) -> cap::EmptyExtPcieCap {
         let cap = self.get_ext_capability_by_id(id);
         if cap != 0 {
+            let val = self.read::<u32>(cap as isize);
             return cap::EmptyExtPcieCap{
-                cap_on: cap != 0,
+                cap_on: val != 0,
                 base_ptr: cap,
-                hdr: fld::CapExtHdr(self.read::<u32>(cap as isize))
+                hdr: fld::CapExtHdr(val)
             };
         }
         return cap::EmptyExtPcieCap::new();
