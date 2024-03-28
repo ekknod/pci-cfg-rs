@@ -315,10 +315,10 @@ pub mod fld {
         u8;
         pub dev_cap_max_payload_supported, _: 2, 0;
         pub dev_cap_phantom_functions_support, _: 4, 3;
-        pub dev_cap_ext_tag_supporte, _: 5;
+        pub dev_cap_ext_tag_supported, _: 5;
         pub dev_cap_endpoint_l0s_latency, _: 8, 6;
         pub dev_cap_endpoint_l1_latency, _: 11, 9;
-        pub dev_cap_role_based_erro, _: 15;
+        pub dev_cap_role_based_error, _: 15;
         pub dev_cap_enable_slot_pwr_limit_value, _: 25, 18;
         pub dev_cap_enable_slot_pwr_limit_scale, _: 27, 26;
         pub dev_cap_function_level_reset_capable, _: 28;
