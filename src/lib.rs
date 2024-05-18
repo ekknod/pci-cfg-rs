@@ -361,7 +361,7 @@ pub mod fld {
         pub parity_err_enable, _: 6;
         pub serr_enable, _: 8;
         pub b2b_enable, _: 9;
-        pub interrupt_disable, _: 9;
+        pub interrupt_disable, _: 10;
     }
 
     bitfield::bitfield!{
