@@ -1,41 +1,26 @@
 pub mod config {
-
 pub struct Pci
 {
     cfg: [u8; 0x1000],
-    pub vendor_id: u16,
-    pub device_id: u16,
-    pub subsystem_vendor_id: u16,
-    pub subsystem_device_id: u16,
-    pub command: fld::Command,
-    pub status: fld::Status,
-    pub header_type: fld::HeaderType,
-    pub interrupt_line: u8,
-    pub interrupt_pin: u8,
-    pub capabilities_ptr: u8,
-    pub bus_number: u8,
-    pub secondary_bus: u8,
-    pub subordinate_bus: u8,
-    pub class_code: u32,
 }
 
 impl std::fmt::Debug for Pci {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Pci")
-         .field("vendor_id", &self.vendor_id)
-         .field("device_id", &self.device_id)
-         .field("subsystem_vendor_id", &self.subsystem_vendor_id)
-         .field("subsystem_device_id", &self.subsystem_device_id)
-         .field("command", &self.command)
-         .field("status", &self.status)
-         .field("header_type", &self.header_type)
-         .field("interrupt_line", &self.interrupt_line)
-         .field("interrupt_pin", &self.interrupt_pin)
-         .field("capabilities_ptr", &self.capabilities_ptr)
-         .field("bus_number", &self.bus_number)
-         .field("secondary_bus", &self.secondary_bus)
-         .field("subordinate_bus", &self.subordinate_bus)
-         .field("class_code", &self.class_code)
+         .field("vendor_id", &self.vendor_id())
+         .field("device_id", &self.device_id())
+         .field("subsystem_vendor_id", &self.subsystem_vendor_id())
+         .field("subsystem_device_id", &self.subsystem_device_id())
+         .field("command", &self.command())
+         .field("status", &self.status())
+         .field("header_type", &self.header())
+         .field("interrupt_line", &self.interrupt_line())
+         .field("interrupt_pin", &self.interrupt_pin())
+         .field("capabilities_ptr", &self.capabilities_ptr())
+         .field("bus_number", &self.bus_number())
+         .field("secondary_bus", &self.secondary_bus())
+         .field("subordinate_bus", &self.subordinate_bus())
+         .field("class_code", &self.class_code())
          .finish()
     }
 }
@@ -60,57 +45,68 @@ impl Pci {
         let mut cfg_buffer: [u8; 0x1000] = [0; 0x1000];
         let size = std::mem::size_of_val(cfg);
         cfg_buffer[..size].copy_from_slice(&cfg[..size]);
-
-        let header_type = fld::HeaderType(Pci::read_field::<u8>(cfg, 0x0E));
-        let bus_number : u8;
-        let secondary_bus : u8;
-        let subordinate_bus : u8;
-
-        if header_type.header_type() == 1 {
-            bus_number = Pci::read_field(cfg, 0x18);
-            secondary_bus = Pci::read_field(cfg, 0x19);
-            subordinate_bus = Pci::read_field(cfg, 0x1A);
-        } else {
-            bus_number = 0;
-            secondary_bus = 0;
-            subordinate_bus = 0;
-        }
-
-        let status = fld::Status(Pci::read_field::<u16>(cfg, 0x06));
-        let capabilities_ptr = if status.capabilities_list() { Pci::read_field::<u8>(cfg, 0x34) } else { 0 };
-
         Self{
-            cfg : cfg_buffer,
-            vendor_id: Pci::read_field::<u16>(cfg, 0x00),
-            device_id: Pci::read_field::<u16>(cfg, 0x02),
-            subsystem_vendor_id: Pci::read_field::<u16>(cfg, 0x2C),
-            subsystem_device_id: Pci::read_field::<u16>(cfg, 0x2E),
-            command: fld::Command(Pci::read_field::<u16>(cfg, 0x04)),
-            status,
-            header_type,
-            interrupt_line: Pci::read_field::<u8>(cfg, 0x3C),
-            interrupt_pin: Pci::read_field::<u8>(cfg, 0x3D),
-            capabilities_ptr,
-            bus_number,
-            secondary_bus,
-            subordinate_bus,
-            class_code: {
-                let a0 = Pci::read_field::<u8>(cfg, 0x09 + 0) as u32;
-                let a1 = Pci::read_field::<u8>(cfg, 0x09 + 1) as u32;
-                let a2 = Pci::read_field::<u8>(cfg, 0x09 + 2) as u32;
-                (a2 << 16) | (a1 << 8) | a0
-            }
+            cfg : cfg_buffer
         }
     }
 
+    pub fn vendor_id(&self) -> u16 { self.read::<u16>(0x00) }
+    pub fn device_id(&self) -> u16 { self.read::<u16>(0x02) }
+
+    pub fn subsystem_vendor_id(&self) -> u16 { self.read::<u16>(0x2C) }
+    pub fn subsystem_device_id(&self) -> u16 { self.read::<u16>(0x2E) }
+
+    pub fn command(&self) -> fld::Command { fld::Command(self.read::<u16>(0x04)) }
+    pub fn status(&self)  -> fld::Status  { fld::Status(self.read::<u16>(0x06)) }
+    pub fn header(&self)  -> fld::HeaderType { fld::HeaderType(self.read::<u8>(0x0E)) }
+
+    pub fn bus_number(&self) -> u8 {
+        if self.header().header_type() == 0 {
+            return 0;
+        }
+        return self.read::<u8>(0x18);
+    }
+
+    pub fn secondary_bus(&self) -> u8 {
+        if self.header().header_type() == 0 {
+            return 0;
+        }
+        return self.read::<u8>(0x19);
+    }
+
+    pub fn subordinate_bus(&self) -> u8 {
+        if self.header().header_type() == 0 {
+            return 0;
+        }
+        return self.read::<u8>(0x1A);
+    }
+
+    pub fn revision_id(&self) -> u8 { return self.read::<u8>(0x08); }
+
+    pub fn class_code(&self) -> u32 {
+        let a0 = self.read::<u8>(0x09 + 0) as u32;
+        let a1 = self.read::<u8>(0x09 + 1) as u32;
+        let a2 = self.read::<u8>(0x09 + 2) as u32;
+        return (a2 << 16) | (a1 << 8) | a0
+    }
+
+    pub fn interrupt_line(&self) -> u8 { return self.read::<u8>(0x3C); }
+    pub fn interrupt_pin(&self) -> u8 { return self.read::<u8>(0x3D); }
+    pub fn capabilities_ptr(&self) -> u8 { return self.read::<u8>(0x34); }
+
     pub fn get_capability_by_id(&self, id: u8) -> u8
     {
-        let mut off = self.capabilities_ptr;
+        let mut off = self.capabilities_ptr();
         if off == 0 {
             return 0;
         }
         loop {
             let cap = fld::CapHdr(self.read::<u16>(off as isize));
+
+            if cap.0 == 0 {
+                break;
+            }
+
             if cap.cap_id() == id
             {
                 return off;
@@ -131,6 +127,11 @@ impl Pci {
         let mut off = 0x100 as u16;
         loop {
             let cap = fld::CapExtHdr(self.read::<u32>(off as isize));
+
+            if cap.0 == 0 {
+                break;
+            }
+
             if cap.cap_id() == id
             {
                 return off;
