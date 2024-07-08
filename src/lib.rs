@@ -176,6 +176,20 @@ impl Pci {
         return cap::MSI::new();
     }
 
+    pub fn get_msix(&self) -> cap::MSIX {
+        let cap = self.get_capability_by_id(0x11);
+        if cap != 0 {
+            let val = self.read::<u32>(cap as isize);
+            return cap::MSIX{
+                cap_on: val != 0,
+                base_ptr: cap,
+                hdr: fld::CapHdr((val & 0xFFFF) as u16),
+                cap: fld::MsixCap(((val >> 16) & 0xFFFF) as u16)
+            };
+        }
+        return cap::MSIX::new();
+    }
+
     pub fn get_pci(&self) -> cap::PCIE {
         let cap = self.get_capability_by_id(0x10);
         if cap != 0 {
@@ -291,10 +305,18 @@ pub mod fld {
         pub struct MsiCap(u16);
         impl Debug;
         u8;
+        pub msi_cap_enabled, _:  0;
         pub msi_cap_multimsgcap, _:  3, 1;
         pub msi_cap_multimsg_extension, _:  6, 4;
         pub msi_cap_64_bit_addr_capable, _:  7;
         pub msi_cap_per_vector_masking_capable, _:  8;
+    }
+
+    bitfield::bitfield!{
+        pub struct MsixCap(u16);
+        impl Debug;
+        u8;
+        pub msix_cap_enabled, _:  15;
     }
 
     bitfield::bitfield!{
@@ -505,6 +527,16 @@ mod cap
         pub cap : fld::MsiCap
     }
     impl MSI { pub fn new() -> Self { Self{ cap_on: false, base_ptr: 0, hdr: fld::CapHdr(0), cap: fld::MsiCap(0) } } }
+
+    #[derive(Debug)]
+    pub struct MSIX {
+        pub cap_on: bool,
+        pub base_ptr: u8,
+        pub hdr : fld::CapHdr,
+        pub cap : fld::MsixCap
+    }
+    impl MSIX { pub fn new() -> Self { Self{ cap_on: false, base_ptr: 0, hdr: fld::CapHdr(0), cap: fld::MsixCap(0) } } }
+
     #[derive(Debug)]
     pub struct DEV {
         pub cap : fld::DevCap,
